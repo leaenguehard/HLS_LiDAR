@@ -1,1 +1,1 @@
-Read me
+01_script -> Get and download imagery
