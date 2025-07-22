@@ -1,7 +1,7 @@
 # HLS_LiDAR repository
 This is a repository containing scripts used for a publication by Léa Enguehard et al., 2025. (in prep)
 
-**Investigating boreal forests successional stages in Alaska and Northwest Canada: a UAV LiDAR-based study.** Enguehard, Léa; Kruse, Stefan;  Hänsch, Ronny; Herzschuh, Ulrike; Heim, Birgit._In preparation (2025)_
+**Investigating boreal forests successional stages in Alaska and Northwest Canada: a UAV LiDAR-based study.** Enguehard, Léa; Kruse, Stefan;  Hänsch, Ronny; Herzschuh, Ulrike; Panda, Santosh; Heim, Birgit. _In preparation (2025)_
 
 ***
 
