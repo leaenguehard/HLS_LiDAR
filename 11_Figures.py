@@ -11,6 +11,8 @@ from pandas.api.types import CategoricalDtype
 
 # Load data
 data = pd.read_csv("results//pixel_table/pixel_table_final_filt.csv")
+#data = pd.read_csv("results//pixel_table/pixel_table_with_above.csv")
+
 #data = data_f[~data_f['UAV_tiff'].isin(['EN23688_final.tif', 'EN23689_final.tif'])]
 
 # Define custom palette matching categories
@@ -134,14 +136,14 @@ plt.figure(figsize=(10, 6))
 ax = sns.scatterplot(
     data=data,
     x="med_CHM",
-    y="Red_PS",
+    y="TCG_PS",
     hue="cat",
     palette=palette_dict
 )
 
 # ax.set_title("Distribution of CHM and Red PS")
 ax.set_xlabel("Canopy height (m)")
-ax.set_ylabel("Red")
+ax.set_ylabel("TCG")
 plt.legend(title="Category")
 plt.show()
 
@@ -150,7 +152,7 @@ fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 sns.scatterplot(
     data=data,
     x="med_CHM",
-    y="green_PS",
+    y="TCG_PS",
     hue="cat",
     palette=palette_dict,
     ax=axes[0]
@@ -159,7 +161,7 @@ sns.scatterplot(
 sns.regplot(
     data=data,
     x="med_CHM",
-    y="green_PS",
+    y="TCG_PS",
     scatter=False,
     ax=axes[0],
     line_kws={"color": "black", "linewidth": 1.5}
@@ -167,14 +169,14 @@ sns.regplot(
 
 axes[0].set_title("Peak Summer")
 axes[0].set_xlabel("Canopy height (m)")
-axes[0].set_ylabel("Green")
+axes[0].set_ylabel("TCG")
 axes[0].legend_.remove()
 
 # Second plot: Late Summer
 sns.scatterplot(
     data=data,
     x="med_CHM",
-    y="green_LS",
+    y="TCG_LS",
     hue="cat",
     palette=palette_dict,
     ax=axes[1]
@@ -183,14 +185,14 @@ sns.scatterplot(
 sns.regplot(
     data=data,
     x="med_CHM",
-    y="green_LS",
+    y="TCG_LS",
     scatter=False,
     ax=axes[1],
     line_kws={"color": "black", "linewidth": 1.5}
 )
 axes[1].set_title("Late Summer")
 axes[1].set_xlabel("Canopy height (m)")
-axes[1].set_ylabel("Green")
+axes[1].set_ylabel("TCG")
 axes[1].legend(title="Category")
 
 # Adjust layout
@@ -209,7 +211,7 @@ sm.set_array([])
 
 for ax, ycol, title in zip(
     axes,
-    ["SWIR1_PS", "SWIR1_LS"],
+    ["TCG_PS", "TCG_LS"],
     ["Peak Summer", "Late Summer"]
 ):
     sns.scatterplot(
@@ -234,13 +236,60 @@ for ax, ycol, title in zip(
     )
     ax.set_title(title)
     ax.set_xlabel("Crown cover (%)")
-    ax.set_ylabel("SWIR 1")
+    ax.set_ylabel("TCG")
 
 cax = fig.add_axes([0.90, 0.15, 0.02, 0.7])  # [left, bottom, width, height] in figure coords
 fig.colorbar(sm, cax=cax, orientation="vertical", label="Canopy Height (m)")
 
 plt.show()
 
+## Correlation coefficients
+from scipy.stats import pearsonr
+
+structure_vars = {
+    "Crown Cover": "crown_cov",
+    "Canopy Height": "med_CHM"
+}
+seasons = {
+    "PS": "Peak Summer",
+    "LS": "Late Summer"
+}
+spectral_vars = {
+    "NDVI": "NDVI",
+    "TCW": "TCW"
+}
+
+results = []
+print("\n========== Pearson Correlation Results ==========\n")
+
+for struct_name, struct_col in structure_vars.items():
+    for season_code, season_name in seasons.items():
+        for spec_name, spec_prefix in spectral_vars.items():
+            
+            spec_col = f"{spec_prefix}_{season_code}"
+            
+            subset = data[[struct_col, spec_col]].dropna()
+            
+            r, p = pearsonr(subset[struct_col], subset[spec_col])
+            
+            print(f"{struct_name} ({season_name}) vs {spec_name}")
+            print(f"   r = {r:.3f} | p = {p:.4f}")
+            print("-" * 60)
+            
+            results.append({
+                "Structure Variable": struct_name,
+                "Season": season_name,
+                "Spectral Index": spec_name,
+                "Pearson r": round(r, 3),
+                "p-value": round(p, 4)
+            })
+
+
+corr_df = pd.DataFrame(results)
+# Save to CSV
+corr_df.to_csv("pearson_correlations_structure_vs_spectral.csv", index=False)
+print("\nSaved table as: pearson_correlations_structure_vs_spectral.csv")
+corr_df
 
 
 
@@ -248,10 +297,10 @@ plt.show()
 
 
 ############### Plot frequencies
-cc_LS = pd.read_csv("results/Regression_models/BlockCV_4models/predictions_csv/crown_cov_LS_predictions.csv")
-cc_PS = pd.read_csv("results/Regression_models/BlockCV_4models/predictions_csv/crown_cov_PS_predictions.csv")
-ch_LS = pd.read_csv("results/Regression_models/BlockCV_4models/predictions_csv/med_CHM_LS_predictions.csv")
-ch_PS = pd.read_csv("results/Regression_models/BlockCV_4models/predictions_csv/med_CHM_PS_predictions.csv")
+cc_LS = pd.read_csv("results/Regression_models/rev/BlockCV_models100TCPC/predictions_csv/crown_cov_LS_predictions.csv")
+cc_PS = pd.read_csv("results/Regression_models/rev/BlockCV_models100TCPC/predictions_csv/crown_cov_PS_predictions.csv")
+ch_LS = pd.read_csv("results/Regression_models/rev/BlockCV_models100TCPC/predictions_csv/med_CHM_LS_predictions.csv")
+ch_PS = pd.read_csv("results/Regression_models/rev/BlockCV_models100TCPC/predictions_csv/med_CHM_PS_predictions.csv")
 
 ## without shrubs
 # cc_LS = pd.read_csv("results/Regression_models/Tuned_20folds_final/predictions_csv/crown_cov_LS_predictions.csv")
@@ -277,36 +326,36 @@ axes[1,1].set_xlim(5, 100)      # Crown  Cover  – Late  Summer
 # ────────────────────────────────────────────────────────────────
 
 # Top-left: Canopy Height – Peak Summer
-sns.kdeplot(data=ch_PS, x="True",      color="#CBC705", label="Measured",
+sns.kdeplot(data=ch_PS, x="true",      color="#CBC705", label="Measured",
             linewidth=2, ax=axes[0,0])
-sns.kdeplot(data=ch_PS, x="Predicted", color="#327686", label="Predicted",
+sns.kdeplot(data=ch_PS, x="pred", color="#327686", label="Predicted",
             linewidth=2, ax=axes[0,0])
 axes[0,0].set_title('Canopy Height – Peak Summer')
 axes[0,0].set_xlabel('Canopy Height (m)')
 axes[0,0].legend()
 
 # Top-right: Crown Cover – Peak Summer
-sns.kdeplot(data=cc_PS, x="True",      color="#CBC705", label="Measured",
+sns.kdeplot(data=cc_PS, x="true",      color="#CBC705", label="Measured",
             linewidth=2, ax=axes[0,1])
-sns.kdeplot(data=cc_PS, x="Predicted", color="#327686", label="Predicted",
+sns.kdeplot(data=cc_PS, x="pred", color="#327686", label="Predicted",
             linewidth=2, ax=axes[0,1])
 axes[0,1].set_title('Crown Cover – Peak Summer')
 axes[0,1].set_xlabel('Crown Cover (%)')
 axes[0,1].legend()
 
 # Bottom-left: Canopy Height – Late Summer
-sns.kdeplot(data=ch_LS, x="True",      color="#CBC705", label="Measured",
+sns.kdeplot(data=ch_LS, x="true",      color="#CBC705", label="Measured",
             linewidth=2, ax=axes[1,0])
-sns.kdeplot(data=ch_LS, x="Predicted", color="#327686", label="Predicted",
+sns.kdeplot(data=ch_LS, x="pred", color="#327686", label="Predicted",
             linewidth=2, ax=axes[1,0])
 axes[1,0].set_title('Canopy Height – Late Summer')
 axes[1,0].set_xlabel('Canopy Height (m)')
 axes[1,0].legend()
 
 # Bottom-right: Crown Cover – Late Summer
-sns.kdeplot(data=cc_LS, x="True",      color="#CBC705", label="Measured",
+sns.kdeplot(data=cc_LS, x="true",      color="#CBC705", label="Measured",
             linewidth=2, ax=axes[1,1])
-sns.kdeplot(data=cc_LS, x="Predicted", color="#327686", label="Predicted",
+sns.kdeplot(data=cc_LS, x="pred", color="#327686", label="Predicted",
             linewidth=2, ax=axes[1,1])
 axes[1,1].set_title('Crown Cover – Late Summer')
 axes[1,1].set_xlabel('Crown Cover (%)')
@@ -323,7 +372,7 @@ sns.kdeplot(data=data, x="ABoVE_tcc", color="#327686", label="ABoVE TCC", linewi
 
 # Add labels and legend
 plt.xlabel("Crown Cover (%)")
-plt.ylabel("Density")
+plt.ylabel("Probability density")
 plt.title("Distribution of Crown Cover Values")
 plt.legend(loc="upper right")
 plt.tight_layout()
