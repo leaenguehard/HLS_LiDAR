@@ -18,8 +18,8 @@ from sklearn.metrics import (accuracy_score, confusion_matrix,
                              classification_report, roc_curve, auc)
 from sklearn.multiclass import OneVsRestClassifier
 
-LOAD_SAVED_MODELS = True             
-SAVE_DIR = "results/Classification_models/BlockCV_20folds100m"
+LOAD_SAVED_MODELS = False             
+SAVE_DIR = "results/Classification_models/rev/BlockCV_20folds100mTCs"
 os.makedirs(SAVE_DIR,           exist_ok=True)
 os.makedirs(os.path.join(SAVE_DIR, "predictions_csv"), exist_ok=True)
 
@@ -28,10 +28,16 @@ n_folds_max   = 20
 
 data = pd.read_csv("results/pixel_table/pixel_table_final_filt.csv")
 
-PS_feats = ['blue_PS', 'green_PS', 'red_PS', 'NIR_PS',
-            'SWIR1_PS', 'SWIR2_PS', 'NDVI_PS']
-LS_feats = ['blue_LS', 'green_LS', 'red_LS', 'NIR_LS',
-            'SWIR1_LS', 'SWIR2_LS', 'NDVI_LS']
+PS_feats = [
+    'blue_PS', 'green_PS', 'red_PS', 'NIR_PS',
+    'SWIR1_PS', 'SWIR2_PS', 'NDVI_PS','TCB_PS', 'TCW_PS', 'TCG_PS'
+]
+
+LS_feats = [
+    'blue_LS', 'green_LS', 'red_LS', 'NIR_LS',
+    'SWIR1_LS', 'SWIR2_LS', 'NDVI_LS','TCB_LS', 'TCW_LS', 'TCG_LS'
+]
+
 feature_map = {"PS": PS_feats, "LS": LS_feats}
 
 # encode labels
@@ -143,6 +149,7 @@ categories = [
     '5–20%', '20–50%', '50–80% >5', 
     '50–80% <5', '80–100% <5', '80–100% >5'
 ]
+palette_dict = dict(zip(categories, custom_palette))
 category_to_index = {cat: i for i, cat in enumerate(class_names)}
 
 for season in ["PS", "LS"]:
@@ -188,4 +195,54 @@ print(f"   • Features → feature_importances_blockcv.csv")
 print(f"   • Predictions per season in predictions_csv/")
 
 
+# ───────────── Feature importance plots (PS & LS) ───────────────────────────
+
+titles_map = {
+    "PS": "Peak Summer",
+    "LS": "Late Summer"
+}
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+bar_colour = "#B3B3B3"
+
+for ax, season in zip(axes, ["PS", "LS"]):
+    imp = feature_importance[season].sort_values(ascending=True)
+
+    # Clean feature names (same logic as your other script)
+    clean_names = []
+    for f in imp.index:
+        f = f.replace("_PS", "").replace("_LS", "").lower()
+        if "swir1" in f:
+            clean_names.append("SWIR1")
+        elif "swir2" in f:
+            clean_names.append("SWIR2")
+        elif "ndvi" in f:
+            clean_names.append("NDVI")
+        elif "nir" in f:
+            clean_names.append("NIR")
+        elif "pc" in f:
+            clean_names.append(f.upper())
+        elif "tcb" in f:
+            clean_names.append("TC Brightness")
+        elif "tcg" in f:
+            clean_names.append("TC Greenness")
+        elif "tcw" in f:
+            clean_names.append("TC Wetness")
+        else:
+            clean_names.append(f.capitalize())
+
+    sns.barplot(
+        x=imp.values,
+        y=clean_names,
+        ax=ax,
+        color=bar_colour
+    )
+
+    ax.set_title(titles_map[season])
+    ax.set_xlabel("Importance")
+    ax.set_ylabel("Feature")
+    ax.set_xlim(0, 0.20)
+
+plt.tight_layout()
+plt.show()
 
